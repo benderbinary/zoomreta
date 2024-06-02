@@ -1,18 +1,16 @@
-function getZoomLevelFallback(): number {
-    return 1;
-}
-
 export function getZoomLevel(): number {
-    if (typeof window !== 'undefined' && window.visualViewport) {
-        return window.visualViewport.scale;
-    } else if (typeof window !== 'undefined') {
-        const devicePixelRatio = window.devicePixelRatio || 1;
-        const ratio = Math.round((window.outerWidth / (window.innerWidth * devicePixelRatio)) * 100) / 100;
-        return ratio;
+    if (typeof window === 'undefined') {
+      throw new Error('window is not defined');
     }
-    return getZoomLevelFallback();
-}
-
-if (typeof window !== 'undefined') {
-    (window as any).zoomreta = { getZoomLevel };
-}
+  
+    if (window.visualViewport) {
+      return window.visualViewport.scale * 100;
+    }
+  
+    // Fallback in case visualViewport is not supoported
+    const devicePixelRatio = window.devicePixelRatio || 1;
+    const rect = document.documentElement.getBoundingClientRect();
+    const zoomLevel = (rect.width * devicePixelRatio) / window.innerWidth;
+    return zoomLevel * 100;
+  }
+  

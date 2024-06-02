@@ -32,7 +32,7 @@ Include the zoomreta script in your HTML file:
   <title>Zoom Level Test</title>
 </head>
 <body>
-  <script src="node_modules/zoomreta/dist/index.js"></script>
+  <script src="node_modules/zoomreta/dist/bundle.js"></script>
   <script>
     console.log('Zoom Level:', zoomreta.getZoomLevel());
   </script>
