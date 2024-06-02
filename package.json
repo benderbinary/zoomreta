@@ -1,6 +1,6 @@
 {
     "name": "zoomreta",
-    "version": "1.0.0",
+    "version": "1",
     "description": "Determine zoom level (up to date solution) - use zoomreta",
     "main": "dist/bundle.js",
     "scripts": {
