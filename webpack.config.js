@@ -1,24 +1,24 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/index.ts',
-  module: {
-    rules: [
-      {
-        test: /\.ts$/,
-        use: 'ts-loader',
-        exclude: /node_modules/,
-      },
-    ],
-  },
-  resolve: {
-    extensions: ['.ts', '.js'],
-  },
-  output: {
-    filename: 'bundle.js',
-    path: path.resolve(__dirname, 'dist'),
-    library: 'zoomreta',
-    libraryTarget: 'umd',
-    globalObject: 'this',
-  },
+    mode: 'development', // Set the mode to 'development' or 'production'
+    entry: './src/index.ts',
+    module: {
+        rules: [
+            {
+                test: /\.tsx?$/,
+                use: 'ts-loader',
+                exclude: /node_modules/,
+            },
+        ],
+    },
+    resolve: {
+        extensions: ['.tsx', '.ts', '.js'],
+    },
+    output: {
+        filename: 'bundle.js',
+        path: path.resolve(__dirname, 'dist'),
+        library: 'zoomreta',
+        libraryTarget: 'umd',
+    },
 };
