@@ -1,6 +1,6 @@
 # Zoomreta
 
-`Zoomreta` is npm package for detecting zoom level in a browser. It uses the `window.visualViewport` API where available with a fallback method.
+`Zoomreta` is an npm package for detecting zoom level in a browser. It uses the `window.visualViewport` API where available with a fallback method.
 
 ## Installation
 
@@ -42,7 +42,8 @@ Include the zoomreta script in your HTML file:
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request for any changes.
+Contributions are more than welcome! 
+Please open an issue or submit a pull request for any changes you would like to see.
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the ISC License.

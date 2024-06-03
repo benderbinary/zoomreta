@@ -24,7 +24,7 @@ export function getAdjustedZoomLevel(): ZoomLevelProperties {
         viewportZoomLevel = window.visualViewport.scale;
     }
 
-    const isRetina = isLikelyRetinaDisplay();
+    const isRetina = isRetinaDisplay();
 
     return {
         zoomLevelPercentage,
@@ -34,12 +34,14 @@ export function getAdjustedZoomLevel(): ZoomLevelProperties {
     };
 }
 
-function isLikelyRetinaDisplay(): boolean {
+function isRetinaDisplay(): boolean {
     const dpr = window.devicePixelRatio || 1;
     const isHighRes = screen.width > 2560 || screen.height > 1600;
     const supportsHighResMediaQuery = window.matchMedia('(min-resolution: 2dppx)').matches;
 
-    return dpr > 1 && (isHighRes || supportsHighResMediaQuery);
+    const isZoomed = dpr > 1 && window.innerWidth < screen.width;
+
+    return dpr > 1 && (isHighRes || supportsHighResMediaQuery) && !isZoomed;
 }
 
 export function checkForChanges(
