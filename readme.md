@@ -1,6 +1,29 @@
 # Zoomreta
 
 `Zoomreta` is an npm package for detecting zoom level in a browser. It uses the `window.visualViewport` API where available with a fallback method.
+Features:
+
+<ul>
+    <li><strong>Accurate Zoom Detection:</strong> Leverages the `visualViewport` API where available for precise zoom level measurement, with a fallback method for older browsers.</li>
+    <li><strong>Multiple Zoom Level Properties:</strong> Provides detailed information about the zoom level, including:
+        <ul>
+            <li>Percentage</li>
+            <li>Device pixel ratio</li>
+            <li>Viewport scale</li>
+            <li>Effective zoom (combined viewport and system zoom)</li>
+        </ul>
+    </li>
+    <li><strong>Display switch detection:</strong> Detect changes in zoom level if display switched (considering )</li>
+    <li><strong>Retina Display Detection:</strong> Accurately identifies Retina (high-DPI) displays, even when system and browser zoom adjustments are applied.</li>
+    <li><strong>Change Monitoring:</strong> Allows you to monitor zoom level changes and react dynamically using a callback function.</li>
+    <li><strong>Customizable:</strong> Offers options to tailor zoom level detection to your specific needs:
+        <ul>
+            <li>Alternative zoom calculation</li>
+            <li>Selection of specific zoom properties to return</li>
+        </ul>
+    </li>
+  
+</ul>
 
 ## Installation
 
@@ -19,7 +42,9 @@ To use zoomreta in a Node.js environment:
 ```
 import { getZoomLevel } from 'zoomreta';
 
-console.log('Zoom Level:', getZoomLevel());
+const zoomLevels = getAdjustedZoomLevel();
+console.log(zoomLevels.zoomLevelPercentage); // 100 (default zoom level percentage), 125, 150, etc.
+console.log(zoomLevels.effectiveZoomLevel); // Combined viewport and system zoom
 ```
 
 ### In the Browser
@@ -86,29 +111,31 @@ console.log(zoomLevels);
 
 Monitors for changes in zoom level and executes a callback when changes are detected.
 
-### Parameters
-
 <ul>
   <li>
     <b>callback</b> (function): The function to execute when zoom level changes are detected.
   </li>
   <li>
-    <b>interval</b> (number): The interval in milliseconds at which to check for changes (default: 500).
+    <b>interval</b> (number): The interval in milliseconds (default: 500).
   </li>
   <li>
-    <b>options</b> (object): Options to customize the behavior:
+    <b>options</b> (object):
     <ul>
       <li>
-        <b>oncePerStateChange</b> (boolean): If true, the callback is executed only once per zoom state change (e.g., once when zooming in, once when zooming out).
+        <b>oncePerStateChange</b> (boolean):
+        <ul>
+            <li>If `false` (default), the callback fires on <i>every</i> zoom level change within the interval.</li>
+            <li>If `true`, the callback fires <i>only once</i> when transitioning between zoomed and not zoomed states.</li>
+        </ul>
       </li>
       <li>
-        <b>useAlternativeZoomCalculation</b> (boolean): If true, an alternative zoom calculation is used (this might be less accurate in some cases).
+        <b>useAlternativeZoomCalculation</b> (boolean): If `true`, an alternative (probably less accurate) zoom calculation is used.
       </li>
       <li>
-        <b>includeRetina</b> (boolean): If true, includes the `isRetina` property (whether the display is a high-DPI Retina display) in the returned zoom level information.
+        <b>includeRetina</b> (boolean): Return information is retina display
       </li>
       <li>
-        <b>includeZoomViaWindow</b> (boolean): If true, includes the `zoomViaWindowDevicePixelRatio` property (zoom level based on window device pixel ratio) in the returned zoom level information.
+        <b>includeZoomViaWindow</b> (boolean): If `true`, includes the `zoomViaWindowDevicePixelRatio` property (zoom level based on window device pixel ratio) in the returned zoom level information.
       </li>
     </ul>
   </li>

@@ -54,13 +54,19 @@ function isRetinaDisplay(): boolean {
 export function checkForChanges(
     callback: (zoomLevels: Partial<ZoomLevelProperties>) => void,
     interval: number = 500,
-    options?: { oncePerStateChange?: boolean; useAlternativeZoomCalculation?: boolean; includeRetina?: boolean; includeZoomViaWindow?: boolean; }
+    options?: {
+        oncePerStateChange?: boolean;
+        useAlternativeZoomCalculation?: boolean;
+        includeRetina?: boolean;
+        includeZoomViaWindow?: boolean;
+    }
 ) {
     let lastZoomLevels = getAdjustedZoomLevel(options);
     let lastScreenWidth = screen.width;
     let lastScreenHeight = screen.height;
     let lastDevicePixelRatio = window.devicePixelRatio;
     let mediaQueryList: MediaQueryList | null = null;
+    let lastZoomState: boolean | null = null;
 
     if (window.matchMedia) {
         mediaQueryList = window.matchMedia("(resolution: 1dppx), (resolution: 2dppx)");
@@ -84,18 +90,26 @@ export function checkForChanges(
             lastDevicePixelRatio !== currentDevicePixelRatio
         );
 
+        const currentZoomState = currentZoomLevels.effectiveZoomLevel !== 1;
+        const hasZoomStateChanged = lastZoomState !== currentZoomState;
+
         if (
             lastZoomLevels.zoomLevelPercentage !== currentZoomLevels.zoomLevelPercentage ||
-            lastZoomLevels.zoomViaWindowDevicePixelRatio !== currentZoomLevels.zoomViaWindowDevicePixelRatio ||
+            lastZoomLevels.zoomViaWindowDevicePixelRatio !==
+            currentZoomLevels.zoomViaWindowDevicePixelRatio ||
             lastZoomLevels.viewportZoomLevel !== currentZoomLevels.viewportZoomLevel ||
             lastZoomLevels.effectiveZoomLevel !== currentZoomLevels.effectiveZoomLevel ||
             hasScreenChanged
         ) {
-            lastZoomLevels = currentZoomLevels;
-            lastScreenWidth = currentScreenWidth;
-            lastScreenHeight = currentScreenHeight;
-            lastDevicePixelRatio = currentDevicePixelRatio;
-            callback(currentZoomLevels);
+            // call the callback if oncePerStateChange is false or the zoom state has changed
+            if (!options?.oncePerStateChange || hasZoomStateChanged) {
+                lastZoomLevels = currentZoomLevels;
+                lastScreenWidth = currentScreenWidth;
+                lastScreenHeight = currentScreenHeight;
+                lastDevicePixelRatio = currentDevicePixelRatio;
+                lastZoomState = currentZoomState;
+                callback(currentZoomLevels);
+            }
         }
 
         if (hasScreenChanged && options?.oncePerStateChange) {
