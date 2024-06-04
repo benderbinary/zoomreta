@@ -6,7 +6,7 @@ type ZoomLevelProperties = {
     isRetina: boolean;
 };
 
-export function getAdjustedZoomLevel(): ZoomLevelProperties {
+export function getAdjustedZoomLevel(options?: { includeRetina?: boolean, includeZoomViaWindow?: boolean }): Partial<ZoomLevelProperties> {
     if (typeof window === 'undefined') {
         throw new Error('window is not defined');
     }
@@ -23,41 +23,52 @@ export function getAdjustedZoomLevel(): ZoomLevelProperties {
     const effectiveZoomLevel = viewportZoomLevel * systemZoomLevel;
     const isRetina = isRetinaDisplay();
 
-    return {
+    const zoomLevelProps: Partial<ZoomLevelProperties> = {
         zoomLevelPercentage,
-        zoomViaWindowDevicePixelRatio,
         viewportZoomLevel,
-        effectiveZoomLevel,
-        isRetina
+        effectiveZoomLevel
     };
+
+    if (options?.includeZoomViaWindow) {
+        zoomLevelProps.zoomViaWindowDevicePixelRatio = zoomViaWindowDevicePixelRatio;
+    }
+
+    if (options?.includeRetina) {
+        zoomLevelProps.isRetina = isRetina;
+    }
+
+    return zoomLevelProps;
 }
 
 function isRetinaDisplay(): boolean {
     const dpr = window.devicePixelRatio || 1;
-    const isHighRes = screen.width > 2560 || screen.height > 1600;
+    const isHighRes = (screen.width * dpr) > 2560 || (screen.height * dpr) > 1600;
     const supportsHighResMediaQuery = window.matchMedia('(min-resolution: 2dppx)').matches;
-    const isZoomed = dpr > 1 && window.innerWidth < screen.width;
+    const adjustedInnerWidth = window.innerWidth * dpr;
+    const adjustedOuterWidth = window.outerWidth * dpr;
+    const isZoomed = adjustedInnerWidth < adjustedOuterWidth;
+
     return dpr > 1 && (isHighRes || supportsHighResMediaQuery) && !isZoomed;
 }
 
 export function checkForChanges(
-    callback: (zoomLevels: ZoomLevelProperties) => void,
+    callback: (zoomLevels: Partial<ZoomLevelProperties>) => void,
     interval: number = 500,
-    options?: { isSingleRetina?: boolean; useAlternativeZoomCalculation?: boolean; }
+    options?: { oncePerStateChange?: boolean; useAlternativeZoomCalculation?: boolean; includeRetina?: boolean; includeZoomViaWindow?: boolean; }
 ) {
-    let lastZoomLevels = getAdjustedZoomLevel();
+    let lastZoomLevels = getAdjustedZoomLevel(options);
     let lastScreenWidth = screen.width;
     let lastScreenHeight = screen.height;
     let lastDevicePixelRatio = window.devicePixelRatio;
     let mediaQueryList: MediaQueryList | null = null;
 
     if (window.matchMedia) {
-        mediaQueryList = window.matchMedia("(resolution: 1dppx), (resolution: 2dppx)")
+        mediaQueryList = window.matchMedia("(resolution: 1dppx), (resolution: 2dppx)");
         mediaQueryList.addEventListener("change", detectChanges);
     }
 
     function detectChanges() {
-        const currentZoomLevels = getAdjustedZoomLevel();
+        const currentZoomLevels = getAdjustedZoomLevel(options);
         const currentScreenWidth = screen.width;
         const currentScreenHeight = screen.height;
         const currentDevicePixelRatio = window.devicePixelRatio;
@@ -75,8 +86,7 @@ export function checkForChanges(
 
         if (
             lastZoomLevels.zoomLevelPercentage !== currentZoomLevels.zoomLevelPercentage ||
-            lastZoomLevels.zoomViaWindowDevicePixelRatio !==
-            currentZoomLevels.zoomViaWindowDevicePixelRatio ||
+            lastZoomLevels.zoomViaWindowDevicePixelRatio !== currentZoomLevels.zoomViaWindowDevicePixelRatio ||
             lastZoomLevels.viewportZoomLevel !== currentZoomLevels.viewportZoomLevel ||
             lastZoomLevels.effectiveZoomLevel !== currentZoomLevels.effectiveZoomLevel ||
             hasScreenChanged
@@ -88,7 +98,7 @@ export function checkForChanges(
             callback(currentZoomLevels);
         }
 
-        if (hasScreenChanged && options?.isSingleRetina) {
+        if (hasScreenChanged && options?.oncePerStateChange) {
             callback(currentZoomLevels);
         }
     }
