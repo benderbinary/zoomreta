@@ -1,151 +1,108 @@
-# Zoomreta
+# Zoomreta - Precise Browser Zoom Detection
 
-`Zoomreta` is an npm package for detecting zoom level in a browser. It uses the `window.visualViewport` API where available with a fallback method.
-Features:
+Zoomreta is a lightweight JavaScript/TypeScript library that provides accurate and reliable browser zoom level detection. It's designed to help you create responsive web applications that adapt seamlessly to users' zoom preferences, optimize for various screen densities, and ensure accessibility.
 
-<ul>
-    <li><strong>Accurate Zoom Detection:</strong> Leverages the `visualViewport` API where available for precise zoom level measurement, with a fallback method for older browsers.</li>
-    <li><strong>Multiple Zoom Level Properties:</strong> Provides detailed information about the zoom level, including:
-        <ul>
-            <li>Percentage</li>
-            <li>Device pixel ratio</li>
-            <li>Viewport scale</li>
-            <li>Effective zoom (combined viewport and system zoom)</li>
-        </ul>
-    </li>
-    <li><strong>Display switch detection:</strong> Detect changes in zoom level if display switched (considering )</li>
-    <li><strong>Retina Display Detection:</strong> Accurately identifies Retina (high-DPI) displays, even when system and browser zoom adjustments are applied.</li>
-    <li><strong>Change Monitoring:</strong> Allows you to monitor zoom level changes and react dynamically using a callback function.</li>
-    <li><strong>Customizable:</strong> Offers options to tailor zoom level detection to your specific needs:
-        <ul>
-            <li>Alternative zoom calculation</li>
-            <li>Selection of specific zoom properties to return</li>
-        </ul>
-    </li>
-  
-</ul>
+## Features
+
+- **Accurate Zoom Detection:** Leverages the `visualViewport` API where available for precise zoom level measurement, with a fallback method for older browsers.
+- **Multiple Zoom Level Properties:** Provides detailed information about the zoom level, including:
+  - `zoomLevelPercentage`: Zoom level as a percentage (e.g., 100, 110, 125).
+  - `zoomViaWindowDevicePixelRatio`: Zoom level calculated using `1 / devicePixelRatio`.
+  - `viewportZoomLevel`: Zoom level of the visual viewport (if available).
+  - `effectiveZoomLevel`: Combined zoom level considering both viewport and system zoom.
+  - `isRetina`: Indicates if the display is a high-DPI Retina display.
+  - `initialDevicePixelRatio`: The device's original device pixel ratio (DPR) before any zoom is applied.
+- **Display Switch Detection:** Accurately detects changes in zoom levels that occur when switching between displays or changing display settings.
+- **Retina Display Detection:** Accurately identifies Retina (high-DPI) displays, even with system and browser zoom adjustments.
+- **Zoom Event Handling:** Subscribe to zoom events (`zoomStart`, `zoomEnd`, `zoomChange`) for more flexible zoom management.
+- **Threshold-Based Callbacks:**  Optimize performance by only triggering callbacks when zoom level changes exceed a specified threshold.
+- **Zoom Level History:**  Maintain a history of recent zoom levels for analysis and debugging.
+- **Customizable:**  Configure the library to return only the zoom properties you need and choose between zoom calculation methods.
+- **Node.js and Browser Support:** Works seamlessly in both Node.js and browser environments.
 
 ## Installation
 
-You can install `zoomreta` using npm:
-
-```sh
+```bash
 npm install zoomreta
 ```
 
 ## Usage
 
-### In Node.js
-
-To use zoomreta in a Node.js environment:
+### Get Zoom Level
 
 ```
-import { getZoomLevel } from 'zoomreta';
+import { getAdjustedZoomLevel } from 'zoomreta';
 
 const zoomLevels = getAdjustedZoomLevel();
-console.log(zoomLevels.zoomLevelPercentage); // 100 (default zoom level percentage), 125, 150, etc.
-console.log(zoomLevels.effectiveZoomLevel); // Combined viewport and system zoom
+console.log(zoomLevels.zoomLevelPercentage); // Get zoom level percentage
+console.log(zoomLevels.effectiveZoomLevel); // Get combined viewport and system zoom
 ```
 
-### In the Browser
-
-To use zoomreta in a browser environment:
-
-Include the zoomreta script in your HTML file (example):
+### Event-Based Zoom Handling
 
 ```
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zoom Level Test</title>
-</head>
-<body>
-  <script src="node_modules/zoomreta/dist/bundle.js"></script>
-  <script>
-    console.log('Zoom Level:', zoomreta.getZoomLevel());
-  </script>
-</body>
-</html>
+import { on, off, ZoomLevelProperties } from 'zoomreta';
+
+on('zoomChange', (zoomLevels: Partial<ZoomLevelProperties>) => {
+  console.log('Zoom level changed:', zoomLevels);
+});
 ```
 
-Or try in combination with test project:
-
-## API
-
-## `getAdjustedZoomLevel`
-
-Retrieves the current zoom level properties.
-Properties examples:
-
-### 1. Get default zoom properties
+### Monitor Zoom Changes (with Options)
 
 ```
-const zoomLevels = getAdjustedZoomLevel();
-console.log(zoomLevels);
+import { checkForChanges } from 'zoomreta';
+
+checkForChanges((zoomLevels) => {
+    console.log('Zoom level changed:', zoomLevels);
+  }, 500, { oncePerStateChange: true, threshold: 5 });
 ```
 
-### 2. Get zoom level and `isRetina`
+## API Reference
 
-```
-const zoomLevels = getAdjustedZoomLevel({ includeRetina: true });
-console.log(zoomLevels);
-```
+### Functions
 
-### 3. Get zoom level and `zoomViaWindowDevicePixelRatio`
+| Function                            | Description                                                                                                     |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `getAdjustedZoomLevel(options?)`   | Retrieves the current zoom level properties. See `ZoomLevelProperties` below for details.                   |
+| `on(eventType, callback)`          | Subscribes to a zoom event (`'zoomStart'`, `'zoomEnd'`, `'zoomChange'`).                                    |
+| `off(eventType, callback)`         | Unsubscribes from a zoom event.                                                                              |
+| `checkForChanges(callback, interval?, options?)` | Monitors zoom changes and calls the `callback` function when changes occur. See `CheckForChangesOptions` below. |
 
-```
-const zoomLevels = getAdjustedZoomLevel({ includeZoomViaWindow: true });
-console.log(zoomLevels);
-```
+### Types
 
-### 4. All properties
+| Type                        | Description                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| `ZoomLevelProperties`      | An object containing various zoom level properties (see below).                                |
+| `ZoomEventType`            | A type union representing the possible zoom events: `'zoomStart'`, `'zoomEnd'`, or `'zoomChange'`. |
+| `ZoomEventCallback`        | A function type that is called when a zoom event occurs.                                        |
+| `CheckForChangesOptions`   | An object containing options for customizing `checkForChanges` (see below).                     |
 
-```
-const zoomLevels = getAdjustedZoomLevel({ includeRetina: true, includeZoomViaWindow: true });
-console.log(zoomLevels);
-```
+### ZoomLevelProperties
 
-## `checkForChanges`
+| Property                             | Type    | Description                                                                                                   |
+| ------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------- |
+| `zoomLevelPercentage`                | `number` | Zoom level as a percentage (e.g., 100, 110, 125).                                                          |
+| `zoomViaWindowDevicePixelRatio`       | `number` | Zoom level calculated using `1 / devicePixelRatio`.                                                      |
+| `viewportZoomLevel`                  | `number` | Zoom level of the visual viewport (if available).                                                           |
+| `effectiveZoomLevel`                 | `number` | Combined zoom level considering both viewport and system zoom.                                               |
+| `isRetina`                         | `boolean` | Indicates if the display is a high-DPI Retina display.                                                   |
+| `initialDevicePixelRatio`            | `number` | The device's original device pixel ratio (DPR) before any zoom is applied (only present if not zoomed).  |
 
-Monitors for changes in zoom level and executes a callback when changes are detected.
+### CheckForChangesOptions
 
-<ul>
-  <li>
-    <b>callback</b> (function): The function to execute when zoom level changes are detected.
-  </li>
-  <li>
-    <b>interval</b> (number): The interval in milliseconds (default: 500).
-  </li>
-  <li>
-    <b>options</b> (object):
-    <ul>
-      <li>
-        <b>oncePerStateChange</b> (boolean):
-        <ul>
-            <li>If `false` (default), the callback fires on <i>every</i> zoom level change within the interval.</li>
-            <li>If `true`, the callback fires <i>only once</i> when transitioning between zoomed and not zoomed states.</li>
-        </ul>
-      </li>
-      <li>
-        <b>useAlternativeZoomCalculation</b> (boolean): If `true`, an alternative (probably less accurate) zoom calculation is used.
-      </li>
-      <li>
-        <b>includeRetina</b> (boolean): Return information is retina display
-      </li>
-      <li>
-        <b>includeZoomViaWindow</b> (boolean): If `true`, includes the `zoomViaWindowDevicePixelRatio` property (zoom level based on window device pixel ratio) in the returned zoom level information.
-      </li>
-    </ul>
-  </li>
-</ul>
+| Option                         | Type      | Description                                                                                                                                                                                                 | Default Value |
+| ------------------------------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| `oncePerStateChange`          | `boolean`  | If `true`, the callback is executed only once per zoom state change (e.g., once when zooming in, once when zooming out).                                                                                      | `false`       |
+| `useAlternativeZoomCalculation` | `boolean`  | If `true`, an alternative (potentially less accurate) zoom calculation is used.                                                                                                                          | `false`       |
+| `includeRetina`                | `boolean`  | If `true`, includes the `isRetina` property in the zoom level information object returned by `getAdjustedZoomLevel`.                                                                                  | `false`       |
+| `includeZoomViaWindow`          | `boolean`  | If `true`, includes the `zoomViaWindowDevicePixelRatio` property in the zoom level information object returned by `getAdjustedZoomLevel`.                                                            | `false`       |
+| `threshold`                    | `number`   | The minimum zoom level change (in percentage points) required to trigger the `zoomChange` event. If not set, the `zoomChange` event will be triggered for any change in the zoom level, no matter how small. | 0             |
 
 ## Contributing
 
-Contributions are more than welcome!
-Please open an issue or submit a pull request for any changes you would like to see.
+Contributions are welcome! Please open an issue or submit a pull request.
 
 ## License
 
-This project is licensed under the ISC License.
+ISC License
