@@ -1,11 +1,38 @@
 type ZoomLevelProperties = {
     zoomLevelPercentage: number; // Zoom percentage (e.g. 100, 110, 120...)
-    zoomViaWindowDevicePixelRatio: number; // Zoom level calculated using 1/devicePixelRatio 
+    zoomViaWindowDevicePixelRatio: number; // Zoom level calculated using 1/devicePixelRatio
     viewportZoomLevel: number; // Zoom level of visual viewport (if possible)
     effectiveZoomLevel: number; // Combination of viewport and system
-    isRetina: boolean; // Attempt to determine is Retina display 
-    initialDevicePixelRatio: number; // Initial Device Pixel Ratio if not zoomed 
+    isRetina: boolean; // Attempt to determine is Retina display
+    initialDevicePixelRatio: number; // Initial Device Pixel Ratio if not zoomed
 };
+
+type ZoomEventType = 'zoomStart' | 'zoomEnd' | 'zoomChange';
+type ZoomEventCallback = (zoomLevels: Partial<ZoomLevelProperties>) => void;
+
+const zoomEventHandlers: { [key in ZoomEventType]: ZoomEventCallback[] } = {
+    zoomStart: [],
+    zoomEnd: [],
+    zoomChange: [],
+};
+
+export function on(eventType: ZoomEventType, callback: ZoomEventCallback) {
+    zoomEventHandlers[eventType].push(callback);
+}
+
+export function off(eventType: ZoomEventType, callback: ZoomEventCallback) {
+    zoomEventHandlers[eventType] = zoomEventHandlers[eventType].filter(cb => cb !== callback);
+}
+
+export interface CheckForChangesOptions {
+    oncePerStateChange?: boolean;
+    useAlternativeZoomCalculation?: boolean;
+    includeRetina?: boolean;
+    includeZoomViaWindow?: boolean;
+    threshold?: number;
+}
+
+const zoomLevelHistory: Partial<ZoomLevelProperties>[] = [];
 
 export function getAdjustedZoomLevel(options?: { includeRetina?: boolean, includeZoomViaWindow?: boolean }): Partial<ZoomLevelProperties> {
     if (typeof window === 'undefined') {
@@ -27,13 +54,13 @@ export function getAdjustedZoomLevel(options?: { includeRetina?: boolean, includ
     const zoomLevelPercentage = Math.round(zoomLevel * 100 * systemScale);
     const zoomViaWindowDevicePixelRatio = 1 / devicePixelRatio;
 
-    // CHeck if the browser supports the Visual Viewport API
+    // Check if the browser supports the Visual Viewport API
     const viewportZoomLevel = window.visualViewport?.scale || 1;
 
     // System zoom level (e.g. Scale in Windows)
     const systemZoomLevel = window.devicePixelRatio;
 
-    // Effective zoom level - combination of viewport and system zoom 
+    // Effective zoom level - combination of viewport and system zoom
     const effectiveZoomLevel = viewportZoomLevel * systemZoomLevel;
 
     const isRetina = isRetinaDisplay();
@@ -62,7 +89,7 @@ export function getAdjustedZoomLevel(options?: { includeRetina?: boolean, includ
 
 function isRetinaDisplay(): boolean {
     const dpr = window.devicePixelRatio || 1;
-    const isHighRes = Math.max(screen.width, screen.height) * dpr > 2560;;
+    const isHighRes = Math.max(screen.width, screen.height) * dpr > 2560;
     const supportsHighResMediaQuery = window.matchMedia('(min-resolution: 2dppx)').matches;
     const adjustedInnerWidth = window.innerWidth * dpr;
     const adjustedOuterWidth = window.outerWidth * dpr;
@@ -71,15 +98,14 @@ function isRetinaDisplay(): boolean {
     return dpr > 1 && (isHighRes || supportsHighResMediaQuery) && !isZoomed;
 }
 
+function emitZoomEvent(eventType: ZoomEventType, zoomLevels: Partial<ZoomLevelProperties>) {
+    zoomEventHandlers[eventType].forEach(callback => callback(zoomLevels));
+}
+
 export function checkForChanges(
-    callback: (zoomLevels: Partial<ZoomLevelProperties>) => void,
+    callback: ZoomEventCallback,
     interval: number = 500,
-    options?: {
-        oncePerStateChange?: boolean;
-        useAlternativeZoomCalculation?: boolean;
-        includeRetina?: boolean;
-        includeZoomViaWindow?: boolean;
-    }
+    options?: CheckForChangesOptions
 ) {
     let lastZoomLevels = getAdjustedZoomLevel(options);
     let lastScreenWidth = screen.width;
@@ -91,6 +117,11 @@ export function checkForChanges(
 
     let lastZoomState: boolean | null = null;
 
+    window.addEventListener('resize', detectChanges);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', detectChanges);
+    }
+
     if (window.matchMedia) {
         mediaQueryList = window.matchMedia("(resolution: 1dppx), (resolution: 2dppx)");
         mediaQueryList.addEventListener("change", detectChanges);
@@ -101,8 +132,11 @@ export function checkForChanges(
         const currentScreenWidth = screen.width;
         const currentScreenHeight = screen.height;
         const currentDevicePixelRatio = window.devicePixelRatio;
+        const currentZoomState = currentZoomLevels.effectiveZoomLevel !== 1;
+        const hasZoomStateChanged = lastZoomState !== currentZoomState;
+        const zoomLevelChange = Math.abs(currentZoomLevels.zoomLevelPercentage! - lastZoomLevels.zoomLevelPercentage!);
 
-        // Use alternative zoom calculation 
+        // Use alternative zoom calculation
         if (options?.useAlternativeZoomCalculation) {
             const rect = document.documentElement.getBoundingClientRect();
             currentZoomLevels.zoomLevelPercentage = Math.round((rect.width / window.innerWidth) * 100);
@@ -115,8 +149,16 @@ export function checkForChanges(
             lastDevicePixelRatio !== currentDevicePixelRatio
         );
 
-        const currentZoomState = currentZoomLevels.effectiveZoomLevel !== 1;
-        const hasZoomStateChanged = lastZoomState !== currentZoomState;
+        if (zoomLevelChange > (options?.threshold || 0)) { // Check threshold
+            emitZoomEvent('zoomChange', currentZoomLevels); // Emit zoomChange event
+        }
+        if (hasZoomStateChanged) {
+            if (currentZoomState) {
+                emitZoomEvent('zoomStart', currentZoomLevels); // Emit zoomStart event
+            } else {
+                emitZoomEvent('zoomEnd', currentZoomLevels); // Emit zoomEnd event
+            }
+        }
 
         // Check if any relevant zoom property has changed or if the screen has changed
         if (
@@ -136,12 +178,17 @@ export function checkForChanges(
                 callback(currentZoomLevels);
             }
         }
+
+        zoomLevelHistory.push(currentZoomLevels); // Add to zoom level history
+        if (zoomLevelHistory.length > 10) { // Limit history size (adjust as needed)
+            zoomLevelHistory.shift();
+        }
     }
 
     // Check for changes periodically
     const intervalId = setInterval(detectChanges, interval);
 
-    // Clean up after 
+    // Clean up after
     window.addEventListener('unload', () => {
         clearInterval(intervalId);
         if (mediaQueryList) {
