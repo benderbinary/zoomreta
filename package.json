@@ -1,12 +1,26 @@
 {
     "name": "zoomreta",
-    "version": "0.0.7",
-    "description": "Determine zoom level - use zoomreta",
+    "version": "0.9.7",
+    "description": "Zoomreta - Precise Browser Zoom Detection",
     "main": "dist/bundle.js",
     "scripts": {
         "build": "webpack",
         "dev": "concurrently \"tsc --watch\" \"nodemon ./dist/index.js\""
     },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/benderbinary/zoomreta.git" 
+      },
+      "homepage": "https://github.com/benderbinary/zoomreta", 
+    "keywords": [
+        "zoom",
+        "zoom-level",
+        "retina",
+        "high-dpi",
+        "browser-zoom",
+        "javascript",
+        "typescript"
+      ],
     "author": "Eldar Hasanbasic",
     "license": "ISC",
     "dependencies": {
