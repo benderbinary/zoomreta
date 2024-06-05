@@ -1,9 +1,10 @@
 type ZoomLevelProperties = {
-    zoomLevelPercentage: number;
-    zoomViaWindowDevicePixelRatio: number;
-    viewportZoomLevel: number;
-    effectiveZoomLevel: number;
-    isRetina: boolean;
+    zoomLevelPercentage: number; // Zoom percentage (e.g. 100, 110, 120...)
+    zoomViaWindowDevicePixelRatio: number; // Zoom level calculated using 1/devicePixelRatio 
+    viewportZoomLevel: number; // Zoom level of visual viewport (if possible)
+    effectiveZoomLevel: number; // Combination of viewport and system
+    isRetina: boolean; // Attempt to determine is Retina display 
+    initialDevicePixelRatio: number; // Initial Device Pixel Ratio if not zoomed 
 };
 
 export function getAdjustedZoomLevel(options?: { includeRetina?: boolean, includeZoomViaWindow?: boolean }): Partial<ZoomLevelProperties> {
@@ -11,16 +12,30 @@ export function getAdjustedZoomLevel(options?: { includeRetina?: boolean, includ
         throw new Error('window is not defined');
     }
 
+    // Device pixel ratio
     const devicePixelRatio = window.devicePixelRatio || 1;
+
+    // Screen width calculation based on device pixel ratio
     const screenWidth = screen.width * devicePixelRatio;
+
+    // Bounding client rectangle of document
     const rect = document.documentElement.getBoundingClientRect();
+
+    // Zoom level calculated using rectangle width, device pixel ratio and inner width
     const zoomLevel = (rect.width * devicePixelRatio) / window.innerWidth;
     const systemScale = (window.innerWidth / screenWidth) * devicePixelRatio;
     const zoomLevelPercentage = Math.round(zoomLevel * 100 * systemScale);
     const zoomViaWindowDevicePixelRatio = 1 / devicePixelRatio;
+
+    // CHeck if the browser supports the Visual Viewport API
     const viewportZoomLevel = window.visualViewport?.scale || 1;
+
+    // System zoom level (e.g. Scale in Windows)
     const systemZoomLevel = window.devicePixelRatio;
+
+    // Effective zoom level - combination of viewport and system zoom 
     const effectiveZoomLevel = viewportZoomLevel * systemZoomLevel;
+
     const isRetina = isRetinaDisplay();
 
     const zoomLevelProps: Partial<ZoomLevelProperties> = {
@@ -28,6 +43,11 @@ export function getAdjustedZoomLevel(options?: { includeRetina?: boolean, includ
         viewportZoomLevel,
         effectiveZoomLevel
     };
+
+    // Set initial device pixel ratio if not zoomed
+    if (effectiveZoomLevel === 1) {
+        zoomLevelProps.initialDevicePixelRatio = devicePixelRatio;
+    }
 
     if (options?.includeZoomViaWindow) {
         zoomLevelProps.zoomViaWindowDevicePixelRatio = zoomViaWindowDevicePixelRatio;
@@ -42,7 +62,7 @@ export function getAdjustedZoomLevel(options?: { includeRetina?: boolean, includ
 
 function isRetinaDisplay(): boolean {
     const dpr = window.devicePixelRatio || 1;
-    const isHighRes = (screen.width * dpr) > 2560 || (screen.height * dpr) > 1600;
+    const isHighRes = Math.max(screen.width, screen.height) * dpr > 2560;;
     const supportsHighResMediaQuery = window.matchMedia('(min-resolution: 2dppx)').matches;
     const adjustedInnerWidth = window.innerWidth * dpr;
     const adjustedOuterWidth = window.outerWidth * dpr;
@@ -65,7 +85,10 @@ export function checkForChanges(
     let lastScreenWidth = screen.width;
     let lastScreenHeight = screen.height;
     let lastDevicePixelRatio = window.devicePixelRatio;
+
+    // For tracking resolution changes (if supported)
     let mediaQueryList: MediaQueryList | null = null;
+
     let lastZoomState: boolean | null = null;
 
     if (window.matchMedia) {
@@ -79,11 +102,13 @@ export function checkForChanges(
         const currentScreenHeight = screen.height;
         const currentDevicePixelRatio = window.devicePixelRatio;
 
+        // Use alternative zoom calculation 
         if (options?.useAlternativeZoomCalculation) {
             const rect = document.documentElement.getBoundingClientRect();
             currentZoomLevels.zoomLevelPercentage = Math.round((rect.width / window.innerWidth) * 100);
         }
 
+        // Check if screen dimension or device pixel ratio has changed
         const hasScreenChanged = (
             lastScreenWidth !== currentScreenWidth ||
             lastScreenHeight !== currentScreenHeight ||
@@ -93,15 +118,15 @@ export function checkForChanges(
         const currentZoomState = currentZoomLevels.effectiveZoomLevel !== 1;
         const hasZoomStateChanged = lastZoomState !== currentZoomState;
 
+        // Check if any relevant zoom property has changed or if the screen has changed
         if (
             lastZoomLevels.zoomLevelPercentage !== currentZoomLevels.zoomLevelPercentage ||
-            lastZoomLevels.zoomViaWindowDevicePixelRatio !==
-            currentZoomLevels.zoomViaWindowDevicePixelRatio ||
+            lastZoomLevels.zoomViaWindowDevicePixelRatio !== currentZoomLevels.zoomViaWindowDevicePixelRatio ||
             lastZoomLevels.viewportZoomLevel !== currentZoomLevels.viewportZoomLevel ||
             lastZoomLevels.effectiveZoomLevel !== currentZoomLevels.effectiveZoomLevel ||
             hasScreenChanged
         ) {
-            // call the callback if oncePerStateChange is false or the zoom state has changed
+            // Call the callback if oncePerStateChange is false or if the zoom state has changed.
             if (!options?.oncePerStateChange || hasZoomStateChanged) {
                 lastZoomLevels = currentZoomLevels;
                 lastScreenWidth = currentScreenWidth;
@@ -111,14 +136,12 @@ export function checkForChanges(
                 callback(currentZoomLevels);
             }
         }
-
-        if (hasScreenChanged && options?.oncePerStateChange) {
-            callback(currentZoomLevels);
-        }
     }
 
+    // Check for changes periodically
     const intervalId = setInterval(detectChanges, interval);
 
+    // Clean up after 
     window.addEventListener('unload', () => {
         clearInterval(intervalId);
         if (mediaQueryList) {
