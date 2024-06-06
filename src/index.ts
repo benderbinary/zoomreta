@@ -2,6 +2,7 @@ type ZoomLevelProperties = {
     zoomLevelPercentage: number; // Zoom percentage (e.g. 100, 110, 120...)
     zoomViaWindowDevicePixelRatio: number; // Zoom level calculated using 1/devicePixelRatio
     viewportZoomLevel: number; // Zoom level of visual viewport (if possible)
+    systemZoomLevel: number; // System zoom level 
     effectiveZoomLevel: number; // Combination of viewport and system
     isRetina: boolean; // Attempt to determine is Retina display
     initialDevicePixelRatio: number; // Initial Device Pixel Ratio if not zoomed
@@ -30,6 +31,7 @@ export interface CheckForChangesOptions {
     includeRetina?: boolean;
     includeZoomViaWindow?: boolean;
     threshold?: number;
+    maxZoomLevelHistoryLength?: number;
 }
 
 const zoomLevelHistory: Partial<ZoomLevelProperties>[] = [];
@@ -68,11 +70,11 @@ export function getAdjustedZoomLevel(options?: { includeRetina?: boolean, includ
     const zoomLevelProps: Partial<ZoomLevelProperties> = {
         zoomLevelPercentage,
         viewportZoomLevel,
+        systemZoomLevel,
         effectiveZoomLevel
     };
-
-    // Set initial device pixel ratio if not zoomed
-    if (effectiveZoomLevel === 1) {
+    
+    if (zoomLevelHistory.length === 0) {
         zoomLevelProps.initialDevicePixelRatio = devicePixelRatio;
     }
 
@@ -180,7 +182,8 @@ export function checkForChanges(
         }
 
         zoomLevelHistory.push(currentZoomLevels); // Add to zoom level history
-        if (zoomLevelHistory.length > 10) { // Limit history size (adjust as needed)
+        const maxHistoryLength = options?.maxZoomLevelHistoryLength || 10;
+        if (zoomLevelHistory.length > maxHistoryLength) {
             zoomLevelHistory.shift();
         }
     }
