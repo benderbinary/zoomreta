@@ -1,6 +1,6 @@
 {
     "name": "zoomreta",
-    "version": "0.9.7",
+    "version": "0.9.8",
     "description": "Zoomreta - Precise Browser Zoom Detection",
     "main": "dist/bundle.js",
     "scripts": {

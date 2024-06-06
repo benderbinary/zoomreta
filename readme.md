@@ -26,6 +26,10 @@ Zoomreta is a lightweight JavaScript/TypeScript library that provides accurate a
 npm install zoomreta
 ```
 
+## Test environment
+
+Can be tested via project:  https://github.com/benderbinary/zoomreta_test_example
+
 ## Usage
 
 ### Get Zoom Level

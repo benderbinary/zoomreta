@@ -7,7 +7,9 @@ type ZoomLevelProperties = {
     isRetina: boolean; // Attempt to determine is Retina display
     initialDevicePixelRatio: number; // Initial Device Pixel Ratio if not zoomed
 };
+
 type ZoomEventType = 'zoomStart' | 'zoomEnd' | 'zoomChange';
+
 type ZoomEventCallback = (zoomLevels: Partial<ZoomLevelProperties>) => void;
 export interface CheckForChangesOptions {
     oncePerStateChange?: boolean;
@@ -37,6 +39,7 @@ function emitZoomEvent(eventType: ZoomEventType, zoomLevels: Partial<ZoomLevelPr
 }
 
 const zoomLevelHistory: Partial<ZoomLevelProperties>[] = [];
+let localInitialDevicePixelRatio: number | undefined;
 
 export function getAdjustedZoomLevel(options?: { includeRetina?: boolean, includeZoomViaWindow?: boolean }): Partial<ZoomLevelProperties> {
     if (typeof window === 'undefined') {
@@ -76,7 +79,7 @@ export function getAdjustedZoomLevel(options?: { includeRetina?: boolean, includ
         effectiveZoomLevel
     };
 
-    if (zoomLevelPercentage === 100) {
+    if (zoomLevelHistory.length === 0) {
         zoomLevelProps.initialDevicePixelRatio = devicePixelRatio;
     }
 
